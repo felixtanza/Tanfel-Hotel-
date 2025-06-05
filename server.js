@@ -13,9 +13,9 @@ const PORT = process.env.PORT || 5000;
 let visitorCount = 0;
 
 // Middleware
-app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, "public")));
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 // Visitor counter endpoint
 app.get("/api/visitors", (req, res) => {
