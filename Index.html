@@ -1,1 +1,202 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FoodHub - Order Your Favorite Meal</title>
+  <link rel="stylesheet" href="style.css" />
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header>
+    <nav>
+      <div class="logo">FoodHub</div>
+      <ul>
+        <li><a href="#home">Home</a></li>
+        <li><a href="#menu">Menu</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </nav>
+  </header>  <section id="home" class="hero">
+    <h1>Welcome to <span class="typing"></span></h1>
+    <p>Order delicious meals online and pay securely via M-Pesa</p>
+    <a href="#menu" class="btn">Browse Menu</a>
+  </section>  <section id="menu" class="menu">
+    <h2>Our Menu</h2>
+    <div class="menu-items" id="menuItems">
+      <!-- Items will be inserted here by JavaScript -->
+    </div>
+  </section>  <section class="cart">
+    <h2>Your Cart</h2>
+    <ul id="cartItems"></ul>
+    <p>Total: KES <span id="totalPrice">0</span></p>
+    <button onclick="checkout()">Proceed to Checkout</button>
+  </section>  <section id="contact" class="contact">
+    <h2>Contact Us</h2>
+    <form id="contactForm">
+      <input type="text" placeholder="Your Name" required />
+      <input type="email" placeholder="Your Email" required />
+      <textarea placeholder="Your Message"></textarea>
+      <button type="submit">Send Message</button>
+    </form>
+  </section>  <footer>
+    <p>&copy; 2025 FoodHub. All rights reserved.</p>
+    <p>Visitors: <span id="visitorCount">Loading...</span></p>
+  </footer>  <div id="whatsapp-button">
+    <a href="https://wa.me/254712345678" target="_blank">Chat on WhatsApp</a>
+  </div>
+  <!-- Phone number input -->
+<label for="phone">Phone Number (2547XXXXXXXX):</label>
+<input type="text" id="phone" placeholder="2547XXXXXXXX" required />
 
+<!-- Checkout button -->
+<button id="checkout-btn">Checkout & Pay</button>
+
+<div id="payment-status"></div>
+  <button id="backToTop">⬆️</button><script>
+  const typingTexts = ["FoodHub", "Delicious Meals", "Fast Delivery"];
+  let i = 0, j = 0, current = "", isDeleting = false;
+  const typingSpan = document.querySelector(".typing");
+
+  function type() {
+    if (i < typingTexts.length) {
+      if (!isDeleting && j <= typingTexts[i].length) {
+        current = typingTexts[i].substring(0, j++);
+      } else if (isDeleting && j >= 0) {
+        current = typingTexts[i].substring(0, j--);
+      }
+      typingSpan.textContent = current;
+      if (j === typingTexts[i].length) isDeleting = true;
+      if (isDeleting && j === 0) {
+        isDeleting = false;
+        i = (i + 1) % typingTexts.length;
+      }
+    }
+    setTimeout(type, isDeleting ? 60 : 120);
+  }
+  type();
+
+  const menuItems = [
+    { name: "Burger", price: 350 },
+    { name: "Pizza", price: 800 },
+    { name: "Chicken", price: 600 },
+    { name: "Fries", price: 250 },
+    { name: "Soda", price: 100 }
+  ];
+
+  const menuContainer = document.getElementById("menuItems");
+  const cartItems = [];
+
+  function renderMenu() {
+    menuItems.forEach((item, index) => {
+      const div = document.createElement("div");
+      div.classList.add("menu-item");
+      div.innerHTML = `
+        <h3>${item.name}</h3>
+        <p>Price: KES ${item.price}</p>
+        <button onclick="addToCart(${index})">Add to Cart</button>
+      `;
+      menuContainer.appendChild(div);
+    });
+  }
+  renderMenu();
+
+  function addToCart(index) {
+    const item = menuItems[index];
+    cartItems.push(item);
+    updateCart();
+  }
+
+  function updateCart() {
+    const cart = document.getElementById("cartItems");
+    const totalPrice = document.getElementById("totalPrice");
+    cart.innerHTML = "";
+    let total = 0;
+    cartItems.forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = `${item.name} - KES ${item.price}`;
+      cart.appendChild(li);
+      total += item.price;
+    });
+    totalPrice.textContent = total;
+  }
+
+  function checkout() {
+    alert("Checkout is in progress. Payment via M-Pesa will be integrated.");
+    // You will add Daraja API call here
+  }
+
+  document.getElementById("contactForm").addEventListener("submit", e => {
+    e.preventDefault();
+    alert("Message sent! We'll get back to you.");
+  });
+
+  document.getElementById("backToTop").addEventListener("click", () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  window.addEventListener("scroll", () => {
+    document.getElementById("backToTop").style.display = window.scrollY > 100 ? "block" : "none";
+  });
+
+  async function loadVisitorCount() {
+    try {
+      const res = await fetch("/api/visitors");
+      const data = await res.json();
+      document.getElementById("visitorCount").textContent = data.count;
+    } catch (err) {
+      document.getElementById("visitorCount").textContent = "N/A";
+    }
+  }
+  loadVisitorCount();
+    const checkoutBtn = document.getElementById("checkout-btn");
+const phoneInput = document.getElementById("phone");
+const paymentStatus = document.getElementById("payment-status");
+
+checkoutBtn.addEventListener("click", async () => {
+  const phone = phoneInput.value.trim();
+  if (!phone.match(/^2547\d{8}$/)) {
+    alert("Enter a valid phone number in the format 2547XXXXXXXX");
+    return;
+  }
+  if (cart.length === 0) {
+    alert("Your cart is empty");
+    return;
+  }
+
+  const amount = cart.reduce((sum, item) => sum + item.price, 0);
+  const name = prompt("Please enter your name for the order:");
+  if (!name) {
+    alert("Name is required");
+    return;
+  }
+
+  paymentStatus.textContent = "Initiating payment, please wait...";
+
+  try {
+    const response = await fetch("/api/pay", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        phone,
+        amount,
+        orderDetails: cart,
+        name,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.ResponseCode === "0") {
+      paymentStatus.textContent =
+        "Payment prompt sent! Please complete payment on your phone.";
+      // Optionally clear cart here or wait for backend callback confirmation
+    } else {
+      paymentStatus.textContent =
+        "Payment initiation failed: " + (data.errorMessage || JSON.stringify(data));
+    }
+  } catch (err) {
+    paymentStatus.textContent = "Error initiating payment: " + err.message;
+  }
+});
+</script></body>
+               </html>
