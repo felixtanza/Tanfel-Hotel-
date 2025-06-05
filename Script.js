@@ -40,6 +40,7 @@ if (response.ok && data.ResponseCode === "0") {
 
 } catch (err) { paymentStatus.textContent = "Error initiating payment: " + err.message; } finally { checkoutBtn.disabled = false; } });
 
-// Dark mode toggle (optional future button) const toggleTheme = document.getElementById("theme-toggle"); if (toggleTheme) { toggleTheme.addEventListener("click", () => { document.body.classList.toggle("dark"); }); }
+// Dark mode toggle (optional future button)
+                       const toggleTheme = document.getElementById("theme-toggle"); if (toggleTheme) { toggleTheme.addEventListener("click", () => { document.body.classList.toggle("dark"); }); }
 
 
