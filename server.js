@@ -13,9 +13,26 @@ const PORT = process.env.PORT || 5000;
 let visitorCount = 0;
 
 // Middleware
+const express = require("express");
+const path = require("path");
+const bodyParser = require("body-parser");
+const cors = require("cors");
+
+const app = express();
+const PORT = process.env.PORT || 10000;
+
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+
+// Serve static files from /public (CSS, JS, images)
+app.use(express.static(path.join(__dirname, "public")));
+
+// Route to serve index.html
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname,  "index.html"));
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
+
 
 // Visitor counter endpoint
 app.get("/api/visitors", (req, res) => {
