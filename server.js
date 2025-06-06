@@ -8,48 +8,41 @@ const bodyParser = require("body-parser");
 const path = require("path");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
-
-let visitorCount = 0;
-
-// Middleware
-const express = require("express");
-const path = require("path");
-const bodyParser = require("body-parser");
-const cors = require("cors");
-
-const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Middleware
+// ====== MIDDLEWARE ======
 app.use(cors());
 app.use(bodyParser.json());
 
-// Serve static files from /public (CSS, JS, images)
+// Serve static files (HTML, CSS, JS)
 app.use(express.static(path.join(__dirname, "public")));
 
-// Route to serve index.html
+// Serve index.html from /public
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-
-// Visitor counter endpoint
+// ====== VISITOR COUNTER ======
+let visitorCount = 0;
 app.get("/api/visitors", (req, res) => {
   visitorCount++;
   res.json({ count: visitorCount });
 });
 
-// Generate M-Pesa access token
+// ====== M-PESA TOKEN GENERATOR ======
 async function getAccessToken() {
   const auth = Buffer.from(
-    process.env.CONSUMER_KEY + ":" + process.env.CONSUMER_SECRET
+    `${process.env.CONSUMER_KEY}:${process.env.CONSUMER_SECRET}`
   ).toString("base64");
 
   try {
     const response = await axios.get(
       "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
-      { headers: { Authorization: "Basic " + auth } }
+      {
+        headers: {
+          Authorization: `Basic ${auth}`,
+        },
+      }
     );
     return response.data.access_token;
   } catch (error) {
@@ -58,7 +51,7 @@ async function getAccessToken() {
   }
 }
 
-// Initiate STK Push payment request
+// ====== DARAJA STK PUSH ======
 app.post("/api/pay", async (req, res) => {
   try {
     const { phone, amount, orderDetails, name } = req.body;
@@ -67,13 +60,10 @@ app.post("/api/pay", async (req, res) => {
     }
 
     const token = await getAccessToken();
+    const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
 
-    const timestamp = new Date()
-      .toISOString()
-      .replace(/[-:TZ.]/g, "")
-      .slice(0, 14);
     const password = Buffer.from(
-      process.env.BUSINESS_SHORTCODE + process.env.PASSKEY + timestamp
+      `${process.env.BUSINESS_SHORTCODE}${process.env.PASSKEY}${timestamp}`
     ).toString("base64");
 
     const stkPushPayload = {
@@ -95,7 +85,7 @@ app.post("/api/pay", async (req, res) => {
       stkPushPayload,
       {
         headers: {
-          Authorization: "Bearer " + token,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       }
@@ -108,23 +98,21 @@ app.post("/api/pay", async (req, res) => {
   }
 });
 
-// Handle Daraja payment callback
+// ====== CALLBACK FOR M-PESA ======
 app.post("/api/callback", async (req, res) => {
   try {
     const callbackData = req.body;
 
-    // Acknowledge callback immediately
+    // Acknowledge Safaricom
     res.status(200).json({ ResultCode: 0, ResultDesc: "Accepted" });
 
-    const result = callbackData.Body.stkCallback;
-    if (result.ResultCode === 0) {
-      // Payment success
+    const result = callbackData.Body?.stkCallback;
+    if (result?.ResultCode === 0) {
       const metadata = result.CallbackMetadata.Item.reduce((acc, item) => {
         acc[item.Name] = item.Value;
         return acc;
       }, {});
 
-      // Compose email content
       const emailText = `
         Payment Successful!
 
@@ -134,7 +122,6 @@ app.post("/api/callback", async (req, res) => {
         Transaction Date: ${metadata.TransactionDate}
       `;
 
-      // Send Gmail notification
       const transporter = nodemailer.createTransport({
         service: "gmail",
         auth: {
@@ -150,26 +137,27 @@ app.post("/api/callback", async (req, res) => {
         text: emailText,
       });
 
-      console.log("Payment notification email sent.");
+      console.log("📧 Payment notification email sent.");
     } else {
-      console.log("Payment failed or canceled:", result.ResultDesc);
+      console.log("❌ Payment failed/canceled:", result?.ResultDesc);
     }
   } catch (error) {
-    console.error("Callback error:", error);
+    console.error("Callback Error:", error);
   }
 });
 
-// Handle unknown routes
+// ====== FALLBACK FOR 404s ======
 app.use((req, res) => {
   res.status(404).json({ error: "Endpoint not found" });
 });
 
-// Global error handler
+// ====== GLOBAL ERROR HANDLER ======
 app.use((err, req, res, next) => {
-  console.error("Unexpected error:", err);
+  console.error("Server Error:", err);
   res.status(500).json({ error: "Server error" });
 });
 
+// ====== START SERVER ======
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
 });
